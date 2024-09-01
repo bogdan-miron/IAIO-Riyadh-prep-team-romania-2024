@@ -1,0 +1,173 @@
+# Import necessary libraries
+import torch
+from transformers import BertTokenizer, BertForSequenceClassification, AdamW
+from torch.utils.data import DataLoader, TensorDataset, RandomSampler, SequentialSampler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
+import pandas as pd
+import numpy as np
+
+# Load the dataset
+data = pd.read_csv('your_dataset.csv')
+
+# Check the first few rows of the dataset
+print(data.head())
+
+# Assuming 'text' is the column with the input text and 'label' is the target
+texts = data['text'].values
+labels = data['label'].values
+
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(texts, labels, test_size=0.2, random_state=42)
+
+# Load the BERT tokenizer
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+# Function to tokenize text and prepare input for BERT
+def tokenize_data(texts, labels, tokenizer, max_length=128):
+    input_ids = []
+    attention_masks = []
+
+    for text in texts:
+        encoded = tokenizer.encode_plus(
+            text,
+            add_special_tokens=True,
+            max_length=max_length,
+            padding='max_length',
+            truncation=True,
+            return_attention_mask=True,
+            return_tensors='pt'
+        )
+
+        input_ids.append(encoded['input_ids'])
+        attention_masks.append(encoded['attention_mask'])
+
+    # Convert lists to tensors
+    input_ids = torch.cat(input_ids, dim=0)
+    attention_masks = torch.cat(attention_masks, dim=0)
+    labels = torch.tensor(labels)
+
+    return input_ids, attention_masks, labels
+
+# Tokenize the training and test data
+train_input_ids, train_attention_masks, train_labels = tokenize_data(X_train, y_train, tokenizer)
+test_input_ids, test_attention_masks, test_labels = tokenize_data(X_test, y_test, tokenizer)
+
+# Create TensorDatasets for training and test sets
+train_data = TensorDataset(train_input_ids, train_attention_masks, train_labels)
+test_data = TensorDataset(test_input_ids, test_attention_masks, test_labels)
+
+# Create DataLoader for training set
+train_sampler = RandomSampler(train_data)
+train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=16)
+
+# Create DataLoader for test set
+test_sampler = SequentialSampler(test_data)
+test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=16)
+
+# Load BERT model for sequence classification
+model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
+
+# Move model to GPU if available
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.to(device)
+
+# Set up the optimizer
+optimizer = AdamW(model.parameters(), lr=2e-5, eps=1e-8)
+
+# Training loop
+epochs = 3
+
+for epoch in range(epochs):
+    print(f"Epoch {epoch + 1}/{epochs}")
+
+    # Set model to training mode
+    model.train()
+
+    total_loss = 0
+    for step, batch in enumerate(train_dataloader):
+        # Move batch to GPU
+        batch_input_ids, batch_attention_mask, batch_labels = tuple(b.to(device) for b in batch)
+
+        # Zero gradients
+        model.zero_grad()
+
+        # Perform forward pass
+        outputs = model(batch_input_ids, token_type_ids=None, attention_mask=batch_attention_mask, labels=batch_labels)
+        loss = outputs.loss
+        total_loss += loss.item()
+
+        # Perform backward pass
+        loss.backward()
+
+        # Clip the norm of the gradients to 1.0
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
+        # Update parameters and take a step using the computed gradient
+        optimizer.step()
+
+    avg_train_loss = total_loss / len(train_dataloader)
+    print(f"Average training loss: {avg_train_loss:.2f}")
+
+# Evaluation loop
+model.eval()
+
+predictions, true_labels = [], []
+
+with torch.no_grad():
+    for batch in test_dataloader:
+        batch_input_ids, batch_attention_mask, batch_labels = tuple(b.to(device) for b in batch)
+
+        # Perform forward pass
+        outputs = model(batch_input_ids, token_type_ids=None, attention_mask=batch_attention_mask)
+
+        # Get the predicted classes
+        logits = outputs.logits
+        predictions.extend(torch.argmax(logits, dim=1).cpu().numpy())
+        true_labels.extend(batch_labels.cpu().numpy())
+
+# Calculate accuracy
+accuracy = accuracy_score(true_labels, predictions)
+print(f"Test Accuracy: {accuracy:.2f}")
+
+# Print classification report
+print(classification_report(true_labels, predictions))
+
+# Load the test data for submission
+test_df = pd.read_csv('test_data.csv')
+
+# Extract the text and ids
+test_texts = test_df['text'].values
+test_ids = test_df['id'].values
+
+# Tokenize the test data
+test_input_ids, test_attention_masks, _ = tokenize_data(test_texts, [0]*len(test_texts), tokenizer)
+
+# Create DataLoader for the test set
+test_dataset = TensorDataset(test_input_ids, test_attention_masks)
+test_dataloader = DataLoader(test_dataset, sampler=SequentialSampler(test_dataset), batch_size=16)
+
+# Initialize an empty list to store predictions
+submission_predictions = []
+
+with torch.no_grad():
+    for batch in test_dataloader:
+        batch_input_ids, batch_attention_mask = tuple(b.to(device) for b in batch)
+
+        # Perform forward pass
+        outputs = model(batch_input_ids, token_type_ids=None, attention_mask=batch_attention_mask)
+
+        # Get the predicted classes
+        logits = outputs.logits
+        batch_predictions = torch.argmax(logits, dim=1).cpu().numpy()
+
+        # Append the predictions
+        submission_predictions.extend(batch_predictions)
+
+# Create a DataFrame with the ids and predicted labels
+submission_df = pd.DataFrame({'id': test_ids, 'label': submission_predictions})
+
+# Save the predictions to a CSV file
+submission_df.to_csv('submission.csv', index=False)
+
+print("Submission file saved as 'submission.csv'.")
