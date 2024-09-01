@@ -1,0 +1,12 @@
+regex expression to clean text:
+
+pattern = r'http\S+|www.\S+|[@#]\w+|[^\w\s]|_|\d+|[^\x00-\x7F]'
+
+    # Use regex to substitute unwanted parts with an empty string
+    text = re.sub(pattern, '', text)
+
+    # Convert text to lowercase
+    text = text.lower()
+
+    # Remove extra whitespaces by splitting and joining the text
+    text = ' '.join(text.split())
