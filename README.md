@@ -19,9 +19,7 @@ Some key projects in this repository include American Sign Language recognition 
 **Romania placed 3rd globally at IAIO 2024.**
 
 
-
-![Romanian Team]\(Team-Romania-scaled.jpg)
-
+![Team-Romania-scaled](https://github.com/user-attachments/assets/27df7b68-b4d9-4e0a-8487-c52f558bb923)
 
 
 For the results, visit the official IAIO website: [https://www.iaio-official.org/results/](https://www.iaio-official.org/results/).
