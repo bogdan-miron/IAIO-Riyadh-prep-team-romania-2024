@@ -23,6 +23,9 @@ Some key projects in this repository include American Sign Language recognition 
 
 [![Closing Ceremony](https://img.youtube.com/vi/IfIr1NBxtVI/0.jpg)](https://www.youtube.com/watch?v=IfIr1NBxtVI)
 
+[<img src="https://img.youtube.com/vi/IfIr1NBxtVI/0.jpg" width="100%" />](https://www.youtube.com/watch?v=IfIr1NBxtVI)
+
+
 
 For the results, visit the official IAIO website: [https://www.iaio-official.org/results/](https://www.iaio-official.org/results/).
 
