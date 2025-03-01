@@ -21,6 +21,8 @@ Some key projects in this repository include American Sign Language recognition 
 
 ![Team-Romania-scaled](https://github.com/user-attachments/assets/27df7b68-b4d9-4e0a-8487-c52f558bb923)
 
+See the closing ceremony here:
+
 [<img src="https://img.youtube.com/vi/IfIr1NBxtVI/0.jpg" width="100%" />](https://www.youtube.com/watch?v=IfIr1NBxtVI)
 
 For the results, visit the official IAIO website: [https://www.iaio-official.org/results/](https://www.iaio-official.org/results/).
